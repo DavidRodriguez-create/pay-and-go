@@ -19,60 +19,91 @@ type Controllers struct {
 func SetupRoutes(ctrls *Controllers) *http.ServeMux {
 	mux := http.NewServeMux()
 
-	// POST /accounts - Create a new account
-	mux.HandleFunc("/accounts", func(w http.ResponseWriter, r *http.Request) {
+	// Collection endpoint (plural) - list all accounts
+	// GET /accounts - List all accounts
+	mux.HandleFunc("/accounts", handleAccountList(ctrls))
+
+	// Search endpoint - GET /accounts/by-number?account_number=xxx
+	mux.HandleFunc("/accounts/by-number", handleAccountByNumber(ctrls))
+
+	// Single resource endpoint (singular) - operates on ONE account
+	// POST /account - Create a new account
+	// GET /account?id=xxx - Get account by ID
+	// PUT /account?id=xxx - Update account by ID
+	// DELETE /account?id=xxx - Delete account by ID
+	mux.HandleFunc("/account", handleAccount(ctrls))
+
+	// Health check endpoint - GET /health
+	mux.HandleFunc("/health", handleHealth())
+
+	return mux
+}
+
+// handleAccountList handles listing all accounts
+func handleAccountList(ctrls *Controllers) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.Header().Set("Allow", "GET")
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		ctrls.ListAccounts.Handle(w, r)
+	}
+}
+
+// handleAccount handles operations on a single account resource
+func handleAccount(ctrls *Controllers) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// POST /account - Create new account (no ID needed)
 		if r.Method == http.MethodPost {
 			ctrls.CreateAccount.Handle(w, r)
 			return
 		}
-		if r.Method == http.MethodGet {
-			ctrls.ListAccounts.Handle(w, r)
-			return
-		}
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	})
 
-	// Operations on specific accounts via query params
-	// GET /accounts/?id=xxx - Get account by ID
-	// PUT /accounts/?id=xxx - Update account by ID
-	// DELETE /accounts/?id=xxx - Delete account by ID
-	mux.HandleFunc("/accounts/", func(w http.ResponseWriter, r *http.Request) {
+		// All other operations require an ID
 		id := r.URL.Query().Get("id")
+		if id == "" {
+			http.Error(w, "Missing required query parameter: id", http.StatusBadRequest)
+			return
+		}
 
-		if r.Method == http.MethodGet && id != "" {
+		// Route based on HTTP method
+		switch r.Method {
+		case http.MethodGet:
 			ctrls.GetAccount.HandleByID(w, r)
-			return
-		}
-		if (r.Method == http.MethodPut || r.Method == http.MethodPatch) && id != "" {
+		case http.MethodPut, http.MethodPatch:
 			ctrls.UpdateAccount.Handle(w, r)
-			return
-		}
-		if r.Method == http.MethodDelete && id != "" {
+		case http.MethodDelete:
 			ctrls.DeleteAccount.Handle(w, r)
-			return
+		default:
+			w.Header().Set("Allow", "POST, GET, PUT, PATCH, DELETE")
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
-		http.Error(w, "Method not allowed or missing ID", http.StatusBadRequest)
-	})
+	}
+}
 
-	// GET /accounts/by-number?account_number=xxx - Search by account number
-	mux.HandleFunc("/accounts/by-number", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			ctrls.GetAccount.HandleByAccountNumber(w, r)
-			return
-		}
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	})
-
-	// GET /health - Health check endpoint
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+// handleAccountByNumber handles searching for an account by account number
+func handleAccountByNumber(ctrls *Controllers) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
+			w.Header().Set("Allow", "GET")
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		ctrls.GetAccount.HandleByAccountNumber(w, r)
+	}
+}
+
+// handleHealth returns the health status of the service
+func handleHealth() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.Header().Set("Allow", "GET")
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"healthy","service":"account-service"}`))
-	})
-
-	return mux
+	}
 }

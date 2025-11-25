@@ -39,7 +39,7 @@ func TestAccountAPIIntegration(t *testing.T) {
 			"country_code":  "US",
 		}
 		body, _ := json.Marshal(createReq)
-		req := httptest.NewRequest(http.MethodPost, "/accounts", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/account", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		mux.ServeHTTP(w, req)
@@ -64,7 +64,7 @@ func TestAccountAPIIntegration(t *testing.T) {
 		}
 
 		// 2. Get account by ID
-		req = httptest.NewRequest(http.MethodGet, "/accounts/?id="+accountID, nil)
+		req = httptest.NewRequest(http.MethodGet, "/account?id="+accountID, nil)
 		w = httptest.NewRecorder()
 		mux.ServeHTTP(w, req)
 
@@ -97,8 +97,8 @@ func TestAccountAPIIntegration(t *testing.T) {
 			"country_code":  "UK",
 			"status":        "BLOCKED",
 		}
-		body, _ = json.Marshal(updateReq)
-		req = httptest.NewRequest(http.MethodPut, "/accounts/?id="+accountID, bytes.NewReader(body))
+		body2, _ := json.Marshal(updateReq)
+		req = httptest.NewRequest(http.MethodPut, "/account?id="+accountID, bytes.NewReader(body2))
 		req.Header.Set("Content-Type", "application/json")
 		w = httptest.NewRecorder()
 		mux.ServeHTTP(w, req)
@@ -108,7 +108,7 @@ func TestAccountAPIIntegration(t *testing.T) {
 		}
 
 		// 5. Verify update
-		req = httptest.NewRequest(http.MethodGet, "/accounts/?id="+accountID, nil)
+		req = httptest.NewRequest(http.MethodGet, "/account?id="+accountID, nil)
 		w = httptest.NewRecorder()
 		mux.ServeHTTP(w, req)
 
@@ -145,8 +145,8 @@ func TestAccountAPIIntegration(t *testing.T) {
 			t.Errorf("Expected total 1, got %v", listResp["total"])
 		}
 
-		// 7. Delete account
-		req = httptest.NewRequest(http.MethodDelete, "/accounts/?id="+accountID, nil)
+		// 6. Delete account
+		req = httptest.NewRequest(http.MethodDelete, "/account?id="+accountID, nil)
 		w = httptest.NewRecorder()
 		mux.ServeHTTP(w, req)
 
@@ -155,7 +155,7 @@ func TestAccountAPIIntegration(t *testing.T) {
 		}
 
 		// 8. Verify account is marked as deleted
-		req = httptest.NewRequest(http.MethodGet, "/accounts/?id="+accountID, nil)
+		req = httptest.NewRequest(http.MethodGet, "/account?id="+accountID, nil)
 		w = httptest.NewRecorder()
 		mux.ServeHTTP(w, req)
 
@@ -178,7 +178,7 @@ func TestAccountAPIIntegration(t *testing.T) {
 				"country_code":  "US",
 			}
 			body, _ := json.Marshal(createReq)
-			req := httptest.NewRequest(http.MethodPost, "/accounts", bytes.NewReader(body))
+			req := httptest.NewRequest(http.MethodPost, "/account", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			mux.ServeHTTP(w, req)
@@ -237,7 +237,7 @@ func TestErrorHandling(t *testing.T) {
 	mux := setupTestServer()
 
 	t.Run("Invalid JSON payload", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/accounts", bytes.NewReader([]byte("invalid json")))
+		req := httptest.NewRequest(http.MethodPost, "/account", bytes.NewReader([]byte("invalid json")))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		mux.ServeHTTP(w, req)
@@ -253,7 +253,7 @@ func TestErrorHandling(t *testing.T) {
 			"country_code":  "US",
 		}
 		body, _ := json.Marshal(createReq)
-		req := httptest.NewRequest(http.MethodPost, "/accounts", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/account", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		mux.ServeHTTP(w, req)
@@ -264,7 +264,7 @@ func TestErrorHandling(t *testing.T) {
 	})
 
 	t.Run("Get non-existent account", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/accounts/?id=nonexistent", nil)
+		req := httptest.NewRequest(http.MethodGet, "/account?id=nonexistent", nil)
 		w := httptest.NewRecorder()
 		mux.ServeHTTP(w, req)
 
@@ -279,7 +279,7 @@ func TestErrorHandling(t *testing.T) {
 			"beholder_name": "Updated User",
 		}
 		body, _ := json.Marshal(updateReq)
-		req := httptest.NewRequest(http.MethodPut, "/accounts/?id=nonexistent", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPut, "/account?id=nonexistent", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		mux.ServeHTTP(w, req)
@@ -290,7 +290,7 @@ func TestErrorHandling(t *testing.T) {
 	})
 
 	t.Run("Delete non-existent account", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodDelete, "/accounts/?id=nonexistent", nil)
+		req := httptest.NewRequest(http.MethodDelete, "/account?id=nonexistent", nil)
 		w := httptest.NewRecorder()
 		mux.ServeHTTP(w, req)
 
