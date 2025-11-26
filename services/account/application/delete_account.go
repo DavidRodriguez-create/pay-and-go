@@ -17,5 +17,17 @@ func (s *AccountServiceImpl) DeleteAccount(id string) error {
 	}
 
 	// Perform soft delete
-	return s.repository.Delete(id)
+	if err := s.repository.Delete(id); err != nil {
+		return err
+	}
+
+	// Publish account deletion event
+	if s.eventPublisher != nil {
+		if err := s.eventPublisher.PublishAccountStatusChanged(id, "DELETED"); err != nil {
+			// Log error but don't fail the operation
+			return err
+		}
+	}
+
+	return nil
 }

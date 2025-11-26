@@ -1,7 +1,49 @@
-# pay-and-go
-Demo payment application to learn about Golang
+# Pay & Go
 
-## Architecture
+Event-driven payment microservices platform built with Go, demonstrating Clean Architecture and real-time event streaming with Kafka.
+
+## 🚀 Quick Start
+
+**Prerequisites**: 
+- [Podman](https://podman.io/getting-started/installation)
+- [Go 1.23+](https://go.dev/dl/) (optional, for local development)
+
+### Start Everything
+
+```bash
+./manage-services.sh start
+```
+
+Then open **`ui.html`** in your browser to interact with the services.
+
+### Stop Everything
+
+```bash
+./manage-services.sh stop
+```
+
+### Other Commands
+
+```bash
+./manage-services.sh status   # Check service health
+./manage-services.sh restart  # Restart all services
+```
+
+**That's it!** The UI connects to:
+- 💼 Account Service: http://localhost:8081
+- 💳 Card Service: http://localhost:8082
+
+## 🎮 Using the UI
+
+1. **Open `ui.html`** in any web browser (just double-click the file)
+2. **Create an Account** - Enter a name and country, click "Create Account"
+3. **Create a Card** - Use the account ID (auto-filled) to create a card
+4. **Test Operations** - List, suspend, delete accounts and cards
+5. **Watch Kafka Events** - Account changes automatically sync to card service
+
+The UI automatically checks service health and shows real-time status indicators.
+
+## 🏗️ Architecture
 
 This project follows **Clean Architecture** principles with clear separation of concerns across multiple layers:
 
@@ -70,66 +112,60 @@ curl http://localhost:8082/cards
 curl http://localhost:8082/health
 ```
 
-## Deployment
+## 🐳 Deployment
 
 ### Prerequisites
-- Podman installed
-- Go 1.23+ (for local development)
+- **[Podman](https://podman.io/getting-started/installation)** - Container runtime
+- **[Go 1.23+](https://go.dev/dl/)** - For local development (optional)
 
-### Quick Start (Recommended)
+### Service Management (Recommended)
 
-Deploy all services with a single command:
+Use the unified management script for all operations:
 
 ```bash
-./deploy-and-test.sh
+# Start all services
+./manage-services.sh start
+
+# Stop all services
+./manage-services.sh stop
+
+# Restart all services
+./manage-services.sh restart
+
+# Check service status
+./manage-services.sh status
 ```
 
-This will:
-- Clean up any existing containers
-- Build service images
-- Start Zookeeper and Kafka
-- Start Account and Card services
-- Display sample test cases and verification commands
+**What `start` does**:
+1. ✅ Cleans up existing containers
+2. ✅ Builds account-service and card-service images
+3. ✅ Starts Zookeeper and Kafka
+4. ✅ Deploys both microservices
+5. ✅ Shows service URLs and next steps
 
 **Services Available**:
-- Account Service: http://localhost:8081
-- Card Service: http://localhost:8082
-- Kafka Broker: localhost:9092
-- Zookeeper: localhost:2181
+- 🌐 **UI**: Open `ui.html` in your browser
+- 💼 Account Service: http://localhost:8081
+- 💳 Card Service: http://localhost:8082
+- 📨 Kafka Broker: localhost:9092
+- 🔧 Zookeeper: localhost:2181
 
-### Manual Deployment
-
-If you prefer manual control:
-
-```bash
-# Build images
-./build-images.sh
-
-# Clean up existing containers
-podman rm -f account-service card-service kafka zookeeper
-
-# Follow the manual steps in deploy-and-test.sh
-```
-
-### Stop Services
+### Kubernetes Deployment (Optional)
 
 ```bash
-podman rm -f account-service card-service kafka zookeeper
-```
+cd k8s
 
-### Deploy to Kubernetes
-```bash
-# Deploy services
+# Deploy to cluster
 ./deploy.sh
 
 # Access via NodePort
 # Account Service: http://localhost:30081
 
-# Undeploy
+# Remove deployment
 ./undeploy.sh
 ```
 
-**Note**: Kubernetes deployment requires `kubectl` and a running cluster.
+**Note**: Requires `kubectl` and a running Kubernetes cluster.
 
 ## Testing
 
@@ -158,7 +194,13 @@ See service-specific test documentation:
 
 ### API Testing
 
-After deploying with `./deploy-and-test.sh`, test the API endpoints:
+**Option 1: Use the Web UI** (Recommended)
+- Open `ui.html` in your browser
+- Visual interface with auto-fill and real-time responses
+
+**Option 2: Command Line with curl**
+
+After deploying, test the API endpoints:
 
 #### 1. Health Checks
 ```bash
@@ -215,6 +257,7 @@ podman logs -f card-service
 ### Project Structure
 ```
 pay-and-go/
+├── ui.html                        # 🎮 Web UI for testing services
 ├── services/
 │   ├── account/                   # Account management service
 │   │   ├── cmd/                   # Application entry point
@@ -232,15 +275,18 @@ pay-and-go/
 │       ├── presentation/
 │       ├── tests/
 │       └── go.mod
+├── docker-compose.yml             # Service orchestration
+├── podman/                        # Container build files
+│   ├── Dockerfile.account         # Account service image
+│   └── Dockerfile.card            # Card service image
 ├── k8s/                           # Kubernetes manifests
 │   ├── all-services.yaml          # Complete deployment
 │   ├── kafka.yaml                 # Kafka & Zookeeper
 │   ├── account-service.yaml       # Account service
-│   └── card-service.yaml          # Card service
-├── build-images.sh                # Build container images
-├── deploy-and-test.sh             # Deploy all services (Podman)
-├── deploy.sh                      # Deploy to Kubernetes
-└── undeploy.sh                    # Remove Kubernetes deployment
+│   ├── card-service.yaml          # Card service
+│   ├── deploy.sh                  # Deploy to Kubernetes
+│   └── undeploy.sh                # Remove Kubernetes deployment
+└── manage-services.sh             # Main deployment script (Podman)
 ```
 
 ### Clean Architecture Guidelines

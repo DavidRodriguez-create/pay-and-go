@@ -27,16 +27,17 @@ func (c *UpdateAccountController) Handle(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// Get ID from query parameter (already validated by route handler)
+	id := r.URL.Query().Get("id")
+
 	var req application.UpdateAccountRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		presenters.RespondError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if req.ID == "" {
-		presenters.RespondError(w, "ID is required", http.StatusBadRequest)
-		return
-	}
+	// Set ID from query parameter
+	req.ID = id
 
 	err := c.service.UpdateAccount(req)
 	if err != nil {

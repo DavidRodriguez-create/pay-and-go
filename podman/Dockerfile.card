@@ -26,11 +26,11 @@ COPY --from=builder /app/card-service .
 # Expose port
 EXPOSE 8082
 
-# Set environment variables with defaults
+# Environment variables (can be overridden at runtime)
 ENV PORT=8082
 ENV KAFKA_BROKERS=localhost:9092
 ENV KAFKA_TOPIC=account-events
 ENV KAFKA_GROUP_ID=card-service
 
-# Run the application
+# Run the binary
 CMD ["./card-service"]

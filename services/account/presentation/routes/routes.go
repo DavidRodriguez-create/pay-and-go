@@ -15,26 +15,43 @@ type Controllers struct {
 	DeleteAccount *controllers.DeleteAccountController
 }
 
+// corsMiddleware adds CORS headers to allow browser requests
+func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		// Handle preflight requests
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next(w, r)
+	}
+}
+
 // SetupRoutes configures all HTTP routes for the account service
 func SetupRoutes(ctrls *Controllers) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	// Collection endpoint (plural) - list all accounts
 	// GET /accounts - List all accounts
-	mux.HandleFunc("/accounts", handleAccountList(ctrls))
+	mux.HandleFunc("/accounts", corsMiddleware(handleAccountList(ctrls)))
 
 	// Search endpoint - GET /accounts/by-number?account_number=xxx
-	mux.HandleFunc("/accounts/by-number", handleAccountByNumber(ctrls))
+	mux.HandleFunc("/accounts/by-number", corsMiddleware(handleAccountByNumber(ctrls)))
 
 	// Single resource endpoint (singular) - operates on ONE account
 	// POST /account - Create a new account
 	// GET /account?id=xxx - Get account by ID
 	// PUT /account?id=xxx - Update account by ID
 	// DELETE /account?id=xxx - Delete account by ID
-	mux.HandleFunc("/account", handleAccount(ctrls))
+	mux.HandleFunc("/account", corsMiddleware(handleAccount(ctrls)))
 
 	// Health check endpoint - GET /health
-	mux.HandleFunc("/health", handleHealth())
+	mux.HandleFunc("/health", corsMiddleware(handleHealth()))
 
 	return mux
 }

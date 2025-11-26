@@ -4,7 +4,7 @@ echo "Deploying all services to Kubernetes..."
 echo ""
 
 # Deploy all services (Kafka, Zookeeper, Account Service, Card Service)
-kubectl apply -f k8s/all-services.yaml
+kubectl apply -f all-services.yaml
 
 echo ""
 echo "✓ Deployment complete!"

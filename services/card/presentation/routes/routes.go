@@ -14,28 +14,45 @@ type Controllers struct {
 	DeleteCard *controllers.DeleteCardController
 }
 
+// corsMiddleware adds CORS headers to allow browser requests
+func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		// Handle preflight requests
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next(w, r)
+	}
+}
+
 // SetupRoutes configures all HTTP routes for the card service
 func SetupRoutes(ctrls *Controllers) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	// Collection endpoint (plural) - list all cards
 	// GET /cards - List all cards
-	mux.HandleFunc("/cards", handleCardList(ctrls))
+	mux.HandleFunc("/cards", corsMiddleware(handleCardList(ctrls)))
 
 	// Search endpoints
 	// GET /cards/by-number?card_number=xxx - Get card by card number
-	mux.HandleFunc("/cards/by-number", handleCardByNumber(ctrls))
+	mux.HandleFunc("/cards/by-number", corsMiddleware(handleCardByNumber(ctrls)))
 	// GET /cards/by-account?account_id=xxx - Get cards by account ID
-	mux.HandleFunc("/cards/by-account", handleCardsByAccount(ctrls))
+	mux.HandleFunc("/cards/by-account", corsMiddleware(handleCardsByAccount(ctrls)))
 
 	// Single resource endpoint (singular) - operates on ONE card
 	// POST /card - Create a new card
 	// GET /card?id=xxx - Get card by ID
 	// DELETE /card?id=xxx - Delete card by ID
-	mux.HandleFunc("/card", handleCard(ctrls))
+	mux.HandleFunc("/card", corsMiddleware(handleCard(ctrls)))
 
 	// Health check endpoint - GET /health
-	mux.HandleFunc("/health", handleHealth())
+	mux.HandleFunc("/health", corsMiddleware(handleHealth()))
 
 	return mux
 }
