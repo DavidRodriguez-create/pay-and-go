@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"time"
 
 	"github.com/DavidRodriguez-create/pay-and-go/services/card/domain"
 	"github.com/segmentio/kafka-go"
@@ -31,11 +32,14 @@ func NewKafkaAccountConsumer(
 	accountRepo domain.AccountCacheRepository,
 ) *KafkaAccountConsumer {
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  brokers,
-		Topic:    topic,
-		GroupID:  groupID,
-		MinBytes: 10e3, // 10KB
-		MaxBytes: 10e6, // 10MB
+		Brokers:        brokers,
+		Topic:          topic,
+		GroupID:        groupID,
+		StartOffset:    kafka.FirstOffset,      // Start from beginning for new consumer groups
+		MinBytes:       1,                      // Read immediately, don't wait for batch
+		MaxBytes:       10e6,                   // 10MB
+		CommitInterval: time.Second,            // Commit offsets every second
+		MaxWait:        100 * time.Millisecond, // Max 100ms wait time
 	})
 
 	return &KafkaAccountConsumer{
@@ -50,6 +54,7 @@ func (c *KafkaAccountConsumer) Start(ctx context.Context) error {
 	log.Println("Starting Kafka account event consumer...")
 
 	go func() {
+		log.Println("Consumer goroutine started, waiting for messages...")
 		for {
 			select {
 			case <-ctx.Done():
@@ -68,6 +73,7 @@ func (c *KafkaAccountConsumer) Start(ctx context.Context) error {
 					continue
 				}
 
+				log.Printf("Received message: topic=%s, partition=%d, offset=%d\n", msg.Topic, msg.Partition, msg.Offset)
 				if err := c.handleMessage(msg); err != nil {
 					log.Printf("Error handling message: %v\n", err)
 				}

@@ -27,5 +27,10 @@ COPY --from=builder /app/cmd/service-account .
 # Expose port
 EXPOSE 8081
 
+# Environment variables (can be overridden at runtime)
+ENV PORT=8081
+ENV KAFKA_BROKERS=localhost:9092
+ENV KAFKA_TOPIC=account-events
+
 # Run the binary
 CMD ["./service-account"]
