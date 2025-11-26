@@ -77,7 +77,7 @@ start_services() {
     print_header "Starting Pay-and-Go Services"
 
     echo "🧹 Cleaning up existing containers..."
-    progress_bar "Cleaning up existing containers" "podman rm -f account-service card-service kafka zookeeper 2>/dev/null || true"
+    progress_bar "Cleaning up existing containers" "podman rm -f account-service card-service kafka 2>/dev/null || true"
     print_success "Cleanup complete"
     echo ""
 
@@ -87,10 +87,9 @@ start_services() {
     print_success "Images built successfully"
     echo ""
 
-    echo "📥 Pulling Kafka images..."
-    progress_bar "Pulling Zookeeper image" "podman pull confluentinc/cp-zookeeper:latest || true"
+    echo "📥 Pulling Kafka image..."
     progress_bar "Pulling Kafka image" "podman pull confluentinc/cp-kafka:7.5.0 || true"
-    print_success "Kafka images ready"
+    print_success "Kafka image ready"
     echo ""
 
     progress_bar "Creating network" "podman network exists pay-and-go-network || podman network create pay-and-go-network"
@@ -98,9 +97,7 @@ start_services() {
     echo ""
 
     echo "🚀 Starting services..."
-    progress_bar "Starting Zookeeper" "podman run -d --name zookeeper --network pay-and-go-network -p 2181:2181 -e ZOOKEEPER_CLIENT_PORT=2181 -e ZOOKEEPER_TICK_TIME=2000 confluentinc/cp-zookeeper:latest"
-    
-    progress_bar "Starting Kafka" "podman run -d --name kafka --network pay-and-go-network -p 9092:9092 -p 9093:9093 -e KAFKA_BROKER_ID=1 -e KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:9093 -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT -e KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT_INTERNAL -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 confluentinc/cp-kafka:7.5.0"
+    progress_bar "Starting Kafka (KRaft mode)" "podman run -d --name kafka --network pay-and-go-network -p 9092:9092 -p 9093:9093 -e KAFKA_NODE_ID=1 -e KAFKA_PROCESS_ROLES=broker,controller -e KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9094,PLAINTEXT_INTERNAL://0.0.0.0:9093 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:9093 -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9094 -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER -e KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT_INTERNAL -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 -e CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk confluentinc/cp-kafka:7.5.0"
     
     echo "⏳ Waiting for Kafka to be ready..."
     for i in {0..100..12}; do
@@ -127,8 +124,7 @@ start_services() {
     echo "Services available at:"
     echo "  💼 Account Service: http://localhost:8081"
     echo "  💳 Card Service:    http://localhost:8082"
-    echo "  📨 Kafka Broker:    localhost:9092"
-    echo "  🔧 Zookeeper:       localhost:2181"
+    echo "  📨 Kafka Broker:    localhost:9092 (KRaft mode)"
     echo ""
     
     # Open UI in default browser (unless --no-browser flag is set)
@@ -163,7 +159,7 @@ stop_services() {
     print_header "Stopping Pay-and-Go Services"
 
     echo "🛑 Stopping and removing containers..."
-    podman rm -f account-service card-service kafka zookeeper 2>/dev/null || true
+    podman rm -f account-service card-service kafka 2>/dev/null || true
     print_success "All services stopped and removed"
     echo ""
 
@@ -180,7 +176,7 @@ stop_services() {
 show_status() {
     print_header "Service Status"
 
-    if ! podman ps --filter "name=zookeeper" --format "{{.Names}}" | grep -q "zookeeper"; then
+    if ! podman ps --filter "name=kafka" --format "{{.Names}}" | grep -q "kafka"; then
         print_error "Services are not running"
         echo ""
         print_info "Run '$0 start' to start all services"
@@ -188,7 +184,7 @@ show_status() {
     fi
 
     echo "📋 Running containers:"
-    podman ps --filter "name=zookeeper|kafka|account-service|card-service" \
+    podman ps --filter "name=kafka|account-service|card-service" \
         --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
     echo ""
 
