@@ -116,6 +116,14 @@ start_services() {
     
     progress_bar "Starting Card Service" "podman run -d --name card-service --network pay-and-go-network -p 8082:8082 -e PORT=8082 -e KAFKA_BROKERS=kafka:9093 -e KAFKA_TOPIC=account-events -e KAFKA_GROUP_ID=card-service localhost/card-service:latest"
     
+    # Wait for services to fully start and delete stale consumer groups
+    sleep 2
+    echo "🔧 Cleaning up Kafka consumer groups..."
+    podman exec kafka kafka-consumer-groups --bootstrap-server localhost:9092 --group card-service --delete 2>/dev/null || true
+    podman stop card-service > /dev/null 2>&1
+    podman start card-service > /dev/null 2>&1
+    sleep 1
+    
     print_success "All services started"
     echo ""
 
