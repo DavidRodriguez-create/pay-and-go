@@ -44,87 +44,82 @@ print_info() {
     echo -e "${YELLOW}ℹ $1${NC}"
 }
 
+# Function to show progress bar from 0-100%
+# Usage: progress_bar <task_name> <command>
+progress_bar() {
+    local task=$1
+    local cmd=$2
+    
+    echo -ne "${task}\r"
+    
+    # Show progress animation
+    for i in {0..100..10}; do
+        local filled=$((i / 2))
+        local empty=$((50 - filled))
+        local bar=$(printf "%${filled}s" | tr ' ' '-')$(printf "%${empty}s" | tr ' ' '.')
+        printf "\r%-50s ${BLUE}[%s]${NC} %3d%%" "${task}" "${bar}" "${i}"
+        sleep 0.05
+    done
+    
+    # Run the actual command
+    eval "$cmd" > /dev/null 2>&1
+    local exit_code=$?
+    
+    # Show 100% completion
+    local bar=$(printf "%50s" | tr ' ' '-')
+    printf "\r%-50s ${BLUE}[%s]${NC} %3d%%\n" "${task}" "${bar}" "100"
+    
+    return $exit_code
+}
+
 # Function to start all services
 start_services() {
     print_header "Starting Pay-and-Go Services"
 
     echo "🧹 Cleaning up existing containers..."
-    podman rm -f account-service card-service kafka zookeeper 2>/dev/null || true
+    progress_bar "Cleaning up existing containers" "podman rm -f account-service card-service kafka zookeeper 2>/dev/null || true"
     print_success "Cleanup complete"
     echo ""
 
     echo "🔨 Building service images..."
-    echo "Building account-service image..."
-    podman build -f podman/Dockerfile.account -t account-service:latest . > /dev/null 2>&1
-    echo "Building card-service image..."
-    podman build -f podman/Dockerfile.card -t card-service:latest . > /dev/null 2>&1
+    progress_bar "Building account-service image" "podman build -f podman/Dockerfile.account -t account-service:latest ."
+    progress_bar "Building card-service image" "podman build -f podman/Dockerfile.card -t card-service:latest ."
     print_success "Images built successfully"
     echo ""
 
     echo "📥 Pulling Kafka images..."
-    podman pull confluentinc/cp-zookeeper:latest > /dev/null 2>&1 || true
-    podman pull confluentinc/cp-kafka:7.5.0 > /dev/null 2>&1 || true
+    progress_bar "Pulling Zookeeper image" "podman pull confluentinc/cp-zookeeper:latest || true"
+    progress_bar "Pulling Kafka image" "podman pull confluentinc/cp-kafka:7.5.0 || true"
     print_success "Kafka images ready"
     echo ""
 
-    echo "🌐 Creating network..."
-    podman network exists pay-and-go-network || podman network create pay-and-go-network > /dev/null 2>&1
+    progress_bar "Creating network" "podman network exists pay-and-go-network || podman network create pay-and-go-network"
     print_success "Network ready"
     echo ""
 
-    echo "🚀 Starting Zookeeper..."
-    podman run -d \
-        --name zookeeper \
-        --network pay-and-go-network \
-        -p 2181:2181 \
-        -e ZOOKEEPER_CLIENT_PORT=2181 \
-        -e ZOOKEEPER_TICK_TIME=2000 \
-        confluentinc/cp-zookeeper:latest > /dev/null 2>&1
-    print_success "Zookeeper started"
-    echo ""
-
-    echo "🚀 Starting Kafka..."
-    podman run -d \
-        --name kafka \
-        --network pay-and-go-network \
-        -p 9092:9092 \
-        -p 9093:9093 \
-        -e KAFKA_BROKER_ID=1 \
-        -e KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181 \
-        -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:9093 \
-        -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT \
-        -e KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT_INTERNAL \
-        -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
-        confluentinc/cp-kafka:7.5.0 > /dev/null 2>&1
+    echo "🚀 Starting services..."
+    progress_bar "Starting Zookeeper" "podman run -d --name zookeeper --network pay-and-go-network -p 2181:2181 -e ZOOKEEPER_CLIENT_PORT=2181 -e ZOOKEEPER_TICK_TIME=2000 confluentinc/cp-zookeeper:latest"
+    
+    progress_bar "Starting Kafka" "podman run -d --name kafka --network pay-and-go-network -p 9092:9092 -p 9093:9093 -e KAFKA_BROKER_ID=1 -e KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:9093 -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT -e KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT_INTERNAL -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 confluentinc/cp-kafka:7.5.0"
     
     echo "⏳ Waiting for Kafka to be ready..."
-    sleep 8
+    for i in {0..100..12}; do
+        local filled=$((i / 2))
+        local empty=$((50 - filled))
+        local bar=$(printf "%${filled}s" | tr ' ' '-')$(printf "%${empty}s" | tr ' ' '.')
+        printf "\r%-50s ${BLUE}[%s]${NC} %3d%%" "Waiting for Kafka initialization" "${bar}" "${i}"
+        sleep 0.96
+    done
+    local bar=$(printf "%50s" | tr ' ' '-')
+    printf "\r%-50s ${BLUE}[%s]${NC} %3d%%\n" "Waiting for Kafka initialization" "${bar}" "100"
     print_success "Kafka started"
     echo ""
 
-    echo "🚀 Starting Account Service..."
-    podman run -d \
-        --name account-service \
-        --network pay-and-go-network \
-        -p 8081:8081 \
-        -e PORT=8081 \
-        -e KAFKA_BROKERS=kafka:9093 \
-        -e KAFKA_TOPIC=account-events \
-        localhost/account-service:latest > /dev/null 2>&1
-    print_success "Account Service started"
-    echo ""
-
-    echo "🚀 Starting Card Service..."
-    podman run -d \
-        --name card-service \
-        --network pay-and-go-network \
-        -p 8082:8082 \
-        -e PORT=8082 \
-        -e KAFKA_BROKERS=kafka:9093 \
-        -e KAFKA_TOPIC=account-events \
-        -e KAFKA_GROUP_ID=card-service \
-        localhost/card-service:latest > /dev/null 2>&1
-    print_success "Card Service started"
+    progress_bar "Starting Account Service" "podman run -d --name account-service --network pay-and-go-network -p 8081:8081 -e PORT=8081 -e KAFKA_BROKERS=kafka:9093 -e KAFKA_TOPIC=account-events localhost/account-service:latest"
+    
+    progress_bar "Starting Card Service" "podman run -d --name card-service --network pay-and-go-network -p 8082:8082 -e PORT=8082 -e KAFKA_BROKERS=kafka:9093 -e KAFKA_TOPIC=account-events -e KAFKA_GROUP_ID=card-service localhost/card-service:latest"
+    
+    print_success "All services started"
     echo ""
 
     print_header "Deployment Complete!"

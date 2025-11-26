@@ -8,6 +8,17 @@ Event-driven payment microservices platform built with Go, demonstrating Clean A
 - [Podman](https://podman.io/getting-started/installation)
 - [Go 1.23+](https://go.dev/dl/) (optional, for local development)
 
+### Setup (First Time Only)
+
+If you plan to run services locally (without containers), copy the environment files:
+
+```bash
+cp services/account/.env.example services/account/.env
+cp services/card/.env.example services/card/.env
+```
+
+**Note**: The containerized deployment (`manage-services.sh`) doesn't need `.env` files.
+
 ### Start Everything
 
 ```bash
