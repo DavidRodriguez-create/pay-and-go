@@ -123,7 +123,7 @@ func TestUpdateAccount(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockRepo := &MockAccountRepository{}
 			tt.setupMock(mockRepo)
-			service := application.NewAccountService(mockRepo)
+			service := application.NewAccountService(mockRepo, &MockEventPublisher{})
 
 			err := service.UpdateAccount(tt.request)
 

@@ -23,6 +23,12 @@ spec:
         env:
         - name: PORT
           value: "8082"
+        - name: KAFKA_BROKERS
+          value: "kafka:9093"
+        - name: KAFKA_TOPIC
+          value: "account-events"
+        - name: KAFKA_GROUP_ID
+          value: "card-service"
         livenessProbe:
           httpGet:
             path: /health

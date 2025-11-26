@@ -54,7 +54,7 @@ func TestGetAccountByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockRepo := &MockAccountRepository{}
 			tt.setupMock(mockRepo)
-			service := application.NewAccountService(mockRepo)
+			service := application.NewAccountService(mockRepo, &MockEventPublisher{})
 
 			response, err := service.GetAccountByID(tt.accountID)
 
@@ -125,7 +125,7 @@ func TestGetAccountByAccountNumber(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockRepo := &MockAccountRepository{}
 			tt.setupMock(mockRepo)
-			service := application.NewAccountService(mockRepo)
+			service := application.NewAccountService(mockRepo, &MockEventPublisher{})
 
 			response, err := service.GetAccountByAccountNumber(tt.accountNumber)
 
@@ -216,7 +216,7 @@ func TestListAccounts(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockRepo := &MockAccountRepository{}
 			tt.setupMock(mockRepo)
-			service := application.NewAccountService(mockRepo)
+			service := application.NewAccountService(mockRepo, &MockEventPublisher{})
 
 			response, err := service.ListAccounts()
 

@@ -1,15 +1,20 @@
 #!/bin/bash
 
-echo "Deploying services to Kubernetes..."
+echo "Deploying all services to Kubernetes..."
+echo ""
 
-# Deploy account service
-kubectl apply -f k8s/account-service.yaml
-
-# Uncomment when ready to deploy card service
-# kubectl apply -f k8s/card-service.yaml
+# Deploy all services (Kafka, Zookeeper, Account Service, Card Service)
+kubectl apply -f k8s/all-services.yaml
 
 echo ""
 echo "✓ Deployment complete!"
+echo ""
+echo "Waiting for pods to be ready..."
+kubectl wait --for=condition=ready pod -l app=zookeeper --timeout=60s
+kubectl wait --for=condition=ready pod -l app=kafka --timeout=60s
+kubectl wait --for=condition=ready pod -l app=account-service --timeout=60s
+kubectl wait --for=condition=ready pod -l app=card-service --timeout=60s
+
 echo ""
 echo "Check status:"
 echo "  kubectl get pods"
@@ -18,3 +23,8 @@ echo ""
 echo "Access services:"
 echo "  Account Service: http://localhost:8081"
 echo "  Card Service: http://localhost:8082"
+echo ""
+echo "View logs:"
+echo "  kubectl logs -f deployment/account-service"
+echo "  kubectl logs -f deployment/card-service"
+echo "  kubectl logs -f deployment/kafka"

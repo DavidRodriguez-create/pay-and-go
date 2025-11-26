@@ -8,6 +8,26 @@ import (
 	"github.com/DavidRodriguez-create/pay-and-go/services/account/domain"
 )
 
+// MockEventPublisher for testing
+type MockEventPublisher struct {
+	PublishAccountCreatedFunc       func(accountID string, status string) error
+	PublishAccountStatusChangedFunc func(accountID string, status string) error
+}
+
+func (m *MockEventPublisher) PublishAccountCreated(accountID string, status string) error {
+	if m.PublishAccountCreatedFunc != nil {
+		return m.PublishAccountCreatedFunc(accountID, status)
+	}
+	return nil
+}
+
+func (m *MockEventPublisher) PublishAccountStatusChanged(accountID string, status string) error {
+	if m.PublishAccountStatusChangedFunc != nil {
+		return m.PublishAccountStatusChangedFunc(accountID, status)
+	}
+	return nil
+}
+
 // MockAccountRepository for testing
 type MockAccountRepository struct {
 	CreateFunc             func(account *domain.Account) error
@@ -119,7 +139,7 @@ func TestCreateAccount(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockRepo := &MockAccountRepository{}
 			tt.setupMock(mockRepo)
-			service := application.NewAccountService(mockRepo)
+			service := application.NewAccountService(mockRepo, &MockEventPublisher{})
 
 			response, err := service.CreateAccount(tt.request)
 

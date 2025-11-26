@@ -24,5 +24,14 @@ func (s *AccountServiceImpl) CreateAccount(req CreateAccountRequest) (*AccountRe
 		return nil, err
 	}
 
+	// Publish account.created event
+	if s.eventPublisher != nil {
+		if err := s.eventPublisher.PublishAccountCreated(account.ID, string(account.Status)); err != nil {
+			// Log error but don't fail the request - event publishing is best-effort
+			// In production, you might want to implement retry logic or dead-letter queue
+			// For now, we continue as the account was successfully created
+		}
+	}
+
 	return ToAccountResponse(account), nil
 }

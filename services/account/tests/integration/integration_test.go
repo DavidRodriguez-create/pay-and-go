@@ -16,7 +16,8 @@ import (
 // setupTestServer creates a test HTTP server with all dependencies
 func setupTestServer() *http.ServeMux {
 	repo := infrastructure.NewInMemoryAccountRepository()
-	service := application.NewAccountService(repo)
+	// Use nil event publisher for tests (events not needed in test environment)
+	service := application.NewAccountService(repo, nil)
 
 	ctrls := &routes.Controllers{
 		CreateAccount: controllers.NewCreateAccountController(service),

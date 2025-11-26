@@ -21,12 +21,14 @@ var (
 
 // AccountServiceImpl implements the AccountService interface
 type AccountServiceImpl struct {
-	repository domain.AccountRepository
+	repository     domain.AccountRepository
+	eventPublisher domain.EventPublisher
 }
 
 // NewAccountService creates a new instance of AccountServiceImpl
-func NewAccountService(repository domain.AccountRepository) *AccountServiceImpl {
+func NewAccountService(repository domain.AccountRepository, eventPublisher domain.EventPublisher) *AccountServiceImpl {
 	return &AccountServiceImpl{
-		repository: repository,
+		repository:     repository,
+		eventPublisher: eventPublisher,
 	}
 }
